@@ -11,6 +11,23 @@ Contractor runs in a regular docker image and uses the official renovate slim im
 ![command](./assets/command.png)
 <small>Do note that the contractor was run under a personal user, hence the same user replied</small>
 
+## DISCLAIMER
+
+The project is still 0.x.x As such the api is subject to change, and the examples will probably be out of date. The below should be seen as an example of what the project will look like once feature-complete.
+
+## Milestones
+
+- [x] 0.1.0
+  - Includes basic setup such as working server bot, and installation command, automation is missing however. Also only gitea support for now, because this is where the project initially is supposed to be in use.
+- [ ] 0.2.0
+  - Add GitHub support
+- [ ] 0.3.0
+  - Add Delegation support (not clustering, just delegation of renovate jobs)
+- [ ] 0.4.0
+  - Slack integration
+- [ ] 0.5.0
+  - GitHub App and such support
+
 ## Getting started
 
 First you need to pull and run the contractor image, docker is the preferred way of execution, but golang is also available from source.
