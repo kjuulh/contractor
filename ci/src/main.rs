@@ -195,7 +195,7 @@ mod please_release {
     ) -> eyre::Result<()> {
         let build_image = client
             .container()
-            .from("kasperhermansen/cuddle-please:main-1691463075");
+            .from("kasperhermansen/cuddle-please:main-1691504183");
 
         let src = client
             .git_opts(
