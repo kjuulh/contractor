@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://git.front.kjuulh.io/kjuulh/cuddle/raw/branch/main/schemas/base.json
+
+base: "git@git.front.kjuulh.io:kjuulh/cuddle-golang-service-plan.git"
+
+vars:
+  service: "contractor"
+  registry: kasperhermansen
+  docker_image: "docker:dind"
+  golang_builder_image: "golang:latest"
+  production_image: "alpine:latest"
+
+please:
+  project:
+    owner: kjuulh
+    repository: contractor
+    branch: main
+  settings:
+    api_url: https://git.front.kjuulh.io  
+
+scripts:
+  "ci:main":
+    type: shell
+  "ci:pr":
+    type: shell
+  "ci:release":
+    type: shell
+ 

@@ -1,0 +1,171 @@
+kind: pipeline
+name: default
+type: docker
+
+steps:
+  - name: build ci
+    image: rustlang/rust:nightly
+    volumes:
+      - name: ci
+        path: /mnt/ci
+    environment:
+      PKG_CONFIG_SYSROOT_DIR: "/"
+      CI_PREFIX: "/mnt/ci"
+    commands:
+      - set -e
+      - apt update
+      - apt install musl-tools pkg-config libssl-dev openssl build-essential musl-dev -y
+      - rustup target add x86_64-unknown-linux-musl
+      - cd ci
+      - cargo build --target=x86_64-unknown-linux-musl
+      #- cargo build -p ci
+      - mv target/x86_64-unknown-linux-musl/debug/ci "$CI_PREFIX/ci"
+      #- mv target/debug/ci $CI_PREFIX/ci
+
+  - name: load_secret
+    image: debian:buster-slim
+    volumes:
+      - name: ssh
+        path: /root/.ssh/
+    environment:
+      SSH_KEY:
+        from_secret: gitea_id_ed25519
+    commands:
+      - mkdir -p $HOME/.ssh/
+      - echo "$SSH_KEY" | base64 -d > $HOME/.ssh/id_ed25519
+
+  - name: build pr
+    image: kasperhermansen/cuddle:latest
+    pull: always
+    volumes:
+      - name: ssh
+        path: /root/.ssh/
+      - name: dockersock
+        path: /var/run
+      - name: ci
+        path: /mnt/ci
+    commands:
+      - eval `ssh-agent`
+      - chmod -R 600 ~/.ssh
+      - ssh-add
+      - echo "$DOCKER_PASSWORD" | docker login  --password-stdin --username="$DOCKER_USERNAME" docker.io
+      - ldd $CI_PREFIX
+      - apk add git
+      - cuddle x ci:pr
+    environment:
+      DOCKER_BUILDKIT: 1
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      CUDDLE_SECRETS_PROVIDER: 1password
+      CUDDLE_ONE_PASSWORD_DOT_ENV: ".env.ci"
+      CUDDLE_SSH_AGENT: "true"
+      CI_PREFIX: "/mnt/ci/ci"
+      CUDDLE_PLEASE_TOKEN:
+        from_secret: cuddle_please_token
+      OP_SERVICE_ACCOUNT_TOKEN:
+        from_secret: op_service_account_token
+    when:
+      event:
+        - pull_request
+      exclude:
+        - main
+        - master
+    depends_on:
+      - "load_secret"
+      - "build ci"
+
+  - name: build main
+    image: kasperhermansen/cuddle:latest
+    pull: always
+    volumes:
+      - name: ssh
+        path: /root/.ssh/
+      - name: dockersock
+        path: /var/run
+      - name: ci
+        path: /mnt/ci
+    commands:
+      - eval `ssh-agent`
+      - chmod -R 600 ~/.ssh
+      - ssh-add
+      - echo "$DOCKER_PASSWORD" | docker login  --password-stdin --username="$DOCKER_USERNAME" docker.io
+      - ldd $CI_PREFIX
+      - apk add git
+      - cuddle x ci:main
+    environment:
+      DOCKER_BUILDKIT: 1
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      CUDDLE_SECRETS_PROVIDER: 1password
+      CUDDLE_ONE_PASSWORD_DOT_ENV: ".env.ci"
+      CUDDLE_SSH_AGENT: "true"
+      CI_PREFIX: "/mnt/ci/ci"
+      CUDDLE_PLEASE_TOKEN:
+        from_secret: cuddle_please_token
+      OP_SERVICE_ACCOUNT_TOKEN:
+        from_secret: op_service_account_token
+    when:
+      event:
+        - push
+      branch:
+        - main
+        - master
+      exclude:
+        - pull_request
+    depends_on:
+      - "load_secret"
+      - "build ci"
+
+  - name: deploy release
+    image: kasperhermansen/cuddle:latest
+    pull: always
+    volumes:
+      - name: ssh
+        path: /root/.ssh/
+      - name: dockersock
+        path: /var/run
+    commands:
+      - eval `ssh-agent`
+      - chmod -R 600 ~/.ssh
+      - ssh-add
+      - cuddle x build:release:all
+      - cuddle x deploy:docs:preview
+    environment:
+      DOCKER_BUILDKIT: 1
+      CUDDLE_SECRETS_PROVIDER: 1password
+      CUDDLE_ONE_PASSWORD_DOT_ENV: ".env.ci"
+      CUDDLE_SSH_AGENT: "true"
+      CUDDLE_CI: "true"
+      CUDDLE_PLEASE_TOKEN:
+        from_secret: cuddle_please_token
+      OP_SERVICE_ACCOUNT_TOKEN:
+        from_secret: op_service_account_token
+    when:
+      event:
+        - tag
+      ref:
+        include:
+        - refs/tags/v*
+    depends_on:
+      - "load_secret"
+      - "build ci"
+
+services:
+- name: docker
+  image: docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+
+volumes:
+  - name: ssh
+    temp: {}
+  - name: dockersock
+    temp: {}
+  - name: ci
+    temp: {}
