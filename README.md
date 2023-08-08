@@ -9,6 +9,7 @@ Contractor is a chatops like bot, integrating with github/gitea issues, allowing
 Contractor runs in a regular docker image and uses the official renovate slim image behind the scenes, this can be changed in the configuration.
 
 ![command](./assets/command.png)
+<small>Do note that the contractor was run under a personal user, hence the same user replied</small>
 
 ## Getting started
 
@@ -33,6 +34,7 @@ services:
 		env_file:
 	  - .env
 ```
+
 
 ```bash
 # file: .env
