@@ -14,6 +14,21 @@ image behind the scenes, this can be changed in the configuration.
 <small>Do note that the contractor was run under a personal user, hence the same
 user replied</small>
 
+## Motivation
+
+Renovate by default if hosted yourself, is neither sharded, or runs on a
+cron-job cycle. This leaves a lot to be desired from a developers point of view.
+As it may take quite a long time for renovate to revisit the pull-request again,
+if there is a lot of repositories enabled.
+
+This project intends to add an ad-hoc invocation of renovate for a single
+repository, this enables developers to retrigger renovate whenever they want.
+
+The project is built to be integrated with github and gitea (initially), and
+work in its pull-request system, so when a renovate pr shows up, you can either
+manually retrigger it, or enable any of the options in the renovate dashboard,
+and retrigger.
+
 ## DISCLAIMER
 
 The project is still 0.x.x As such the api is subject to change, and the
