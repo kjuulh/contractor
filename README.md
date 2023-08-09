@@ -41,15 +41,13 @@ what the project will look like once feature-complete.
   - Includes basic setup such as working server bot, and installation command,
     automation is missing however. Also only gitea support for now, because this
     is where the project initially is supposed to be in use.
-- [ ] 0.2.0
-  - Add GitHub support
+- [x] 0.2.0
+  - Add GitHub support, only github app support for now. This means that install is not needed, because a github app will automatically receive webhooks if setup properly. docs are missing for this (tbd).
 - [ ] 0.3.0
   - Add Delegation support (not clustering, just delegation of renovate jobs)
 - [ ] 0.4.0
   - Slack integration
 - [ ] 0.5.0
-  - GitHub App and such support
-- [ ] 0.6.0
   - Add api key support
 
 ## Getting started
