@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-08-09
+
+### Added
+- *(github)* add github support
+
+### Docs
+- *(README)* update with github support
+
+### Other
+- *(app)* split the main command file into multiples
+
 ## [0.1.1] - 2023-08-08
 
 ### Docs
