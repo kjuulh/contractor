@@ -31,7 +31,7 @@ func NewGiteaClient(url, token *string) *GiteaClient {
 
 func (gc *GiteaClient) EditComment(
 	ctx context.Context,
-	doneRequest *models.RefreshDoneRepositoryRequest,
+	doneRequest *models.RefreshGiteaRepositoryDoneRequest,
 ) error {
 	commentBody := html.UnescapeString(doneRequest.CommentBody)
 	startCmnt := "<!-- Status update start -->"

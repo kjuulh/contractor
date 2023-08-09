@@ -10,11 +10,12 @@ import (
 )
 
 type BotHandler struct {
-	giteaClient *providers.GiteaClient
+	giteaClient  *providers.GiteaClient
+	githubClient *providers.GitHubClient
 }
 
-func NewBotHandler(gitea *providers.GiteaClient) *BotHandler {
-	return &BotHandler{giteaClient: gitea}
+func NewBotHandler(gitea *providers.GiteaClient, github *providers.GitHubClient) *BotHandler {
+	return &BotHandler{giteaClient: gitea, githubClient: github}
 }
 
 func (b *BotHandler) Handle(input string) (output string, err error) {
@@ -62,6 +63,14 @@ func (b *BotHandler) AppendComment(
 	repository string,
 	pullRequest int,
 	comment string,
+	backend models.SupportedBackend,
 ) (*models.AddCommentResponse, error) {
-	return b.giteaClient.AddComment(owner, repository, pullRequest, comment)
+	switch backend {
+	case models.SupportedBackendGitHub:
+		return b.githubClient.AddComment(owner, repository, pullRequest, comment)
+	case models.SupportedBackendGitea:
+		return b.giteaClient.AddComment(owner, repository, pullRequest, comment)
+	default:
+		panic("backend chosen was not a valid option")
+	}
 }

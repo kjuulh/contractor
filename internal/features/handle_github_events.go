@@ -12,25 +12,25 @@ import (
 	"git.front.kjuulh.io/kjuulh/contractor/internal/renovate"
 )
 
-func RegisterGiteaQueues(goqueue *queue.GoQueue, renovate *renovate.RenovateClient, giteaClient *providers.GiteaClient) {
+func RegisterGitHubQueues(goqueue *queue.GoQueue, renovate *renovate.RenovateClient, giteaClient *providers.GitHubClient) {
 	goqueue.Subscribe(
-		models.MessageTypeRefreshGiteaRepository,
+		models.MessageTypeRefreshGitHubRepository,
 		func(ctx context.Context, item *queue.QueueMessage) error {
 			log.Printf("handling message: %s, content: %s", item.Type, item.Content)
 			return nil
 		},
 	)
 	goqueue.Subscribe(
-		models.MessageTypeRefreshGiteaRepositoryDone,
+		models.MessageTypeRefreshGitHubRepositoryDone,
 		func(ctx context.Context, item *queue.QueueMessage) error {
 			log.Printf("handling message: %s, content: %s", item.Type, item.Content)
 			return nil
 		},
 	)
 	goqueue.Subscribe(
-		models.MessageTypeRefreshGiteaRepository,
+		models.MessageTypeRefreshGitHubRepository,
 		func(ctx context.Context, item *queue.QueueMessage) error {
-			var request models.RefreshGiteaRepositoryRequest
+			var request models.RefreshGitHubRepositoryRequest
 			if err := json.Unmarshal([]byte(item.Content), &request); err != nil {
 				log.Printf("failed to unmarshal request body: %s", err.Error())
 				return err
@@ -40,7 +40,7 @@ func RegisterGiteaQueues(goqueue *queue.GoQueue, renovate *renovate.RenovateClie
 			defer cancel()
 
 			if err := renovate.RefreshRepository(cancelCtx, request.Owner, request.Repository); err != nil {
-				goqueue.Insert(models.MessageTypeRefreshGiteaRepositoryDone, models.RefreshGiteaRepositoryDoneRequest{
+				goqueue.Insert(models.MessageTypeRefreshGitHubRepositoryDone, models.RefreshGitHubRepositoryDoneRequest{
 					Repository:     request.Repository,
 					Owner:          request.Owner,
 					PullRequestID:  request.PullRequestID,
@@ -54,7 +54,7 @@ func RegisterGiteaQueues(goqueue *queue.GoQueue, renovate *renovate.RenovateClie
 				return err
 			}
 
-			goqueue.Insert(models.MessageTypeRefreshGiteaRepositoryDone, models.RefreshGiteaRepositoryDoneRequest{
+			goqueue.Insert(models.MessageTypeRefreshGitHubRepositoryDone, models.RefreshGitHubRepositoryDoneRequest{
 				Repository:     request.Repository,
 				Owner:          request.Owner,
 				PullRequestID:  request.PullRequestID,
@@ -70,9 +70,9 @@ func RegisterGiteaQueues(goqueue *queue.GoQueue, renovate *renovate.RenovateClie
 	)
 
 	goqueue.Subscribe(
-		models.MessageTypeRefreshGiteaRepositoryDone,
+		models.MessageTypeRefreshGitHubRepositoryDone,
 		func(ctx context.Context, item *queue.QueueMessage) error {
-			var doneRequest models.RefreshGiteaRepositoryDoneRequest
+			var doneRequest models.RefreshGitHubRepositoryDoneRequest
 			if err := json.Unmarshal([]byte(item.Content), &doneRequest); err != nil {
 				log.Printf("failed to unmarshal request body: %s", err.Error())
 				return err

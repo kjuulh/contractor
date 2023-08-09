@@ -1,8 +1,10 @@
 package models
 
 const (
-	MessageTypeRefreshRepository     = "refresh_repository"
-	MessageTypeRefreshRepositoryDone = "refresh_repository_done"
+	MessageTypeRefreshGiteaRepository      = "refresh_gitea_repository"
+	MessageTypeRefreshGiteaRepositoryDone  = "refresh_gitea_repository_done"
+	MessageTypeRefreshGitHubRepository     = "refresh_github_repository"
+	MessageTypeRefreshGitHubRepositoryDone = "refresh_github_repository_done"
 )
 
 type CreateHook struct {
@@ -14,7 +16,7 @@ type CreateHook struct {
 	Type                string            `json:"type"`
 }
 
-type RefreshRepositoryRequest struct {
+type RefreshGiteaRepositoryRequest struct {
 	Repository     string `json:"repository"`
 	Owner          string `json:"owner"`
 	PullRequestID  int    `json:"pullRequestId"`
@@ -23,7 +25,27 @@ type RefreshRepositoryRequest struct {
 	ReportProgress bool   `json:"reportProgress"`
 }
 
-type RefreshDoneRepositoryRequest struct {
+type RefreshGiteaRepositoryDoneRequest struct {
+	Repository     string `json:"repository"`
+	Owner          string `json:"owner"`
+	PullRequestID  int    `json:"pullRequestId"`
+	CommentID      int    `json:"commentId"`
+	CommentBody    string `json:"commentBody"`
+	ReportProgress bool   `json:"reportProgress"`
+	Status         string `json:"status"`
+	Error          string `json:"error"`
+}
+
+type RefreshGitHubRepositoryRequest struct {
+	Repository     string `json:"repository"`
+	Owner          string `json:"owner"`
+	PullRequestID  int    `json:"pullRequestId"`
+	CommentID      int    `json:"commentId"`
+	CommentBody    string `json:"commentBody"`
+	ReportProgress bool   `json:"reportProgress"`
+}
+
+type RefreshGitHubRepositoryDoneRequest struct {
 	Repository     string `json:"repository"`
 	Owner          string `json:"owner"`
 	PullRequestID  int    `json:"pullRequestId"`
@@ -38,3 +60,10 @@ type AddCommentResponse struct {
 	Body string `json:"body"`
 	ID   int    `json:"id"`
 }
+
+type SupportedBackend string
+
+const (
+	SupportedBackendGitHub SupportedBackend = "github"
+	SupportedBackendGitea  SupportedBackend = "gitea"
+)

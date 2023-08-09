@@ -10,12 +10,12 @@ import (
 	"git.front.kjuulh.io/kjuulh/contractor/internal/queue"
 )
 
-type GiteaWebhook struct {
+type GitHubWebhook struct {
 	botHandler *bot.BotHandler
 	queue      *queue.GoQueue
 }
 
-type GiteaWebhookRequest struct {
+type GitHubWebhookRequest struct {
 	Action string `json:"action"`
 	Issue  struct {
 		Id     int `json:"id"`
@@ -29,14 +29,14 @@ type GiteaWebhookRequest struct {
 	}
 }
 
-func NewGiteaWebhook(botHandler *bot.BotHandler, queue *queue.GoQueue) *GiteaWebhook {
-	return &GiteaWebhook{
+func NewGitHubWebhook(botHandler *bot.BotHandler, queue *queue.GoQueue) *GitHubWebhook {
+	return &GitHubWebhook{
 		botHandler: botHandler,
 		queue:      queue,
 	}
 }
 
-func (gw *GiteaWebhook) HandleGiteaWebhook(ctx context.Context, request *GiteaWebhookRequest) error {
+func (gw *GitHubWebhook) HandleGitHubWebhook(ctx context.Context, request *GitHubWebhookRequest) error {
 	command, ok := validateBotComment(request.Comment.Body)
 	if ok {
 		log.Printf("got webhook request: contractor %s", command)
@@ -54,13 +54,13 @@ func (gw *GiteaWebhook) HandleGiteaWebhook(ctx context.Context, request *GiteaWe
 			parts[1],
 			request.Issue.Number,
 			output,
-			models.SupportedBackendGitea,
+			models.SupportedBackendGitHub,
 		)
 		if err != nil {
 			return err
 		}
 
-		if err := gw.queue.Insert(models.MessageTypeRefreshGiteaRepository, models.RefreshGiteaRepositoryRequest{
+		if err := gw.queue.Insert(models.MessageTypeRefreshGitHubRepository, models.RefreshGitHubRepositoryRequest{
 			Repository:     parts[1],
 			Owner:          parts[0],
 			PullRequestID:  request.Issue.Number,
@@ -73,12 +73,4 @@ func (gw *GiteaWebhook) HandleGiteaWebhook(ctx context.Context, request *GiteaWe
 	}
 
 	return nil
-}
-
-func validateBotComment(s string) (request string, ok bool) {
-	if after, ok := strings.CutPrefix(s, "/contractor"); ok {
-		return strings.TrimSpace(after), true
-	}
-
-	return "", false
 }
