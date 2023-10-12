@@ -4,9 +4,11 @@ go 1.20
 
 require (
 	dagger.io/dagger v0.8.1
+	github.com/bradleyfalzon/ghinstallation/v2 v2.6.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/go-github/v53 v53.2.0
-	github.com/google/uuid v1.3.0
+	github.com/google/go-github/v56 v56.0.0
+	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.7.0
 )
@@ -16,7 +18,6 @@ require (
 	github.com/Khan/genqlient v0.6.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
-	github.com/bradleyfalzon/ghinstallation/v2 v2.6.0 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
