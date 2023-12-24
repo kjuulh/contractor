@@ -11,6 +11,6 @@ eyre = "*"
 color-eyre = "*"
 tokio = "1"
 clap = {version = "4", features = ["derive"]}
-futures = "0.3.29"
+futures = "0.3.30"
 async-scoped = { version = "0.8.0", features = ["tokio", "use-tokio"] }
 dotenv = "*"
