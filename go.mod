@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	dagger.io/dagger v0.8.1
-	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.9.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/go-github/v57 v57.0.0
