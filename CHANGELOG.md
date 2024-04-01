@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2024-04-01
+
+### Fixed
+- *(deps)* update all dependencies to v61
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies to v58
+- *(deps)* update all dependencies
+- *(deps)* update rust crate futures to 0.3.30
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+- *(deps)* update rust crate futures to 0.3.29
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+- *(deps)* update all dependencies
+
 ## [0.2.0] - 2023-08-09
 
 ### Added
