@@ -17,7 +17,7 @@ impl Deref for GiteaClient {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Repository {
     pub owner: String,
     pub name: String,
@@ -142,6 +142,5 @@ mod extensions;
 pub mod traits;
 
 use anyhow::Context;
-use axum::http::HeaderMap;
 pub use extensions::*;
 use serde::Deserialize;

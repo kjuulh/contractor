@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::SharedState;
 
 use super::gitea::{GiteaClient, GiteaClientState, Repository};
@@ -43,7 +45,7 @@ impl Reconciler {
             }
         }
 
-        Ok(repos)
+        Ok(repos.into_iter().unique().collect())
     }
 }
 

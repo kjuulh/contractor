@@ -319,6 +319,7 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
+ "itertools",
  "reqwest",
  "serde",
  "sqlx",
