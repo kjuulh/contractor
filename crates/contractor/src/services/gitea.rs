@@ -60,6 +60,8 @@ pub struct GiteaRepository {
 pub struct DefaultGiteaClient {
     url: String,
     token: String,
+
+    webhook_url: String,
 }
 
 impl Default for DefaultGiteaClient {
@@ -71,6 +73,10 @@ impl Default for DefaultGiteaClient {
                 .unwrap(),
             token: std::env::var("GITEA_TOKEN")
                 .context("GITEA_TOKEN should be set")
+                .unwrap(),
+            webhook_url: std::env::var("CONTRACTOR_URL")
+                .context("CONTRACTOR_URL should be set")
+                .map(|url| format!("{}/webhooks/gitea", url.trim_end_matches('/')))
                 .unwrap(),
         }
     }
@@ -287,17 +293,7 @@ impl DefaultGiteaClient {
             self.url, &repo.owner, &repo.name
         );
 
-        let val = CreateGiteaWebhook {
-            active: true,
-            authorization_header: Some("something".into()),
-            branch_filter: Some("*".into()),
-            config: CreateGiteaWebhookConfig {
-                content_type: "json".into(),
-                url: "https://url?type=contractor".into(),
-            },
-            events: vec!["pull_request_comment".into(), "issue_comment".into()],
-            r#type: GiteaWebhookType::Gitea,
-        };
+        let val = self.create_webhook();
 
         tracing::trace!(
             "calling url: {} with body {}",
@@ -325,6 +321,20 @@ impl DefaultGiteaClient {
         Ok(())
     }
 
+    fn create_webhook(&self) -> CreateGiteaWebhook {
+        CreateGiteaWebhook {
+            active: true,
+            authorization_header: Some("something".into()),
+            branch_filter: Some("*".into()),
+            config: CreateGiteaWebhookConfig {
+                content_type: "json".into(),
+                url: format!("{}?type=contractor", self.webhook_url),
+            },
+            events: vec!["pull_request_comment".into(), "issue_comment".into()],
+            r#type: GiteaWebhookType::Gitea,
+        }
+    }
+
     async fn update_webhook(&self, repo: &Repository, webhook: GiteaWebhook) -> anyhow::Result<()> {
         let client = reqwest::Client::new();
 
@@ -333,17 +343,7 @@ impl DefaultGiteaClient {
             self.url, &repo.owner, &repo.name, &webhook.id,
         );
 
-        let val = CreateGiteaWebhook {
-            active: true,
-            authorization_header: Some("something".into()),
-            branch_filter: Some("*".into()),
-            config: CreateGiteaWebhookConfig {
-                content_type: "json".into(),
-                url: "https://url?type=contractor".into(),
-            },
-            events: vec!["pull_request_comment".into(), "issue_comment".into()],
-            r#type: GiteaWebhookType::Gitea,
-        };
+        let val = self.create_webhook();
 
         tracing::trace!(
             "calling url: {} with body {}",
@@ -464,7 +464,6 @@ pub mod traits;
 
 use anyhow::Context;
 pub use extensions::*;
-use futures::{stream::FuturesUnordered, StreamExt, TryStreamExt};
-use itertools::Itertools;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};

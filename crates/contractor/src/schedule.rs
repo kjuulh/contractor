@@ -7,8 +7,6 @@ pub async fn serve_cron_jobs(state: &SharedState) -> Result<(), anyhow::Error> {
         loop {
             tracing::info!("running cronjobs");
 
-            todo!();
-
             tokio::time::sleep(std::time::Duration::from_secs(10_000)).await;
         }
         Ok::<(), anyhow::Error>(())
