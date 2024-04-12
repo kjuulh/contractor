@@ -23,6 +23,9 @@ enum Commands {
         user: Option<String>,
         #[arg(long)]
         org: Option<Vec<String>>,
+
+        #[arg(long, env = "CONTRACTOR_FILTER")]
+        filter: Option<String>,
     },
 }
 
@@ -61,12 +64,12 @@ async fn main() -> anyhow::Result<()> {
                 result??
             }
         }
-        Some(Commands::Reconcile { user, org }) => {
+        Some(Commands::Reconcile { user, org, filter }) => {
             tracing::info!("running reconcile");
 
             let state = SharedState::from(Arc::new(State::new().await?));
 
-            state.reconciler().reconcile(user, org).await?;
+            state.reconciler().reconcile(user, org, filter).await?;
         }
         None => {}
     }

@@ -1,4 +1,4 @@
-use std::{ops::Deref, pin::Pin, sync::Arc};
+use std::{fmt::Display, ops::Deref, pin::Pin, sync::Arc};
 
 type DynGiteaClient = Arc<dyn traits::GiteaClient + Send + Sync + 'static>;
 pub struct GiteaClient(DynGiteaClient);
@@ -21,6 +21,12 @@ impl Deref for GiteaClient {
 pub struct Repository {
     pub owner: String,
     pub name: String,
+}
+
+impl Display for Repository {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}/{}", self.owner, self.name))
+    }
 }
 
 impl TryFrom<GiteaRepository> for Repository {

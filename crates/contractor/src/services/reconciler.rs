@@ -1,3 +1,4 @@
+use anyhow::Context;
 use futures::{stream::FuturesUnordered, StreamExt};
 use itertools::Itertools;
 
@@ -18,11 +19,38 @@ impl Reconciler {
         &self,
         user: Option<String>,
         orgs: Option<Vec<String>>,
+        filter: Option<String>,
     ) -> anyhow::Result<()> {
         let repos = self.get_repos(user, orgs).await?;
         tracing::debug!("found repositories: {}", repos.len());
 
-        let renovate_enabled = self.get_renovate_enabled(&repos).await?;
+        let filtered_repos = match filter {
+            Some(filter) => {
+                let re = regex::Regex::new(&filter).context(
+                    "filter regex failed to compile, make sure it is valid against rust-lang/regex",
+                )?;
+
+                repos
+                    .into_iter()
+                    .filter(|r| {
+                        if re.is_match(&r.to_string()) {
+                            true
+                        } else {
+                            tracing::trace!(
+                                filter = &filter,
+                                "repository: {}, didn't match filter",
+                                r.to_string(),
+                            );
+                            false
+                        }
+                    })
+                    .collect()
+            }
+            None => repos,
+        };
+        tracing::debug!("filtered repositories: {}", filtered_repos.len());
+
+        let renovate_enabled = self.get_renovate_enabled(&filtered_repos).await?;
         tracing::debug!(
             "found repositories with renovate enabled: {}",
             renovate_enabled.len()
