@@ -150,24 +150,21 @@ impl DefaultGiteaClient {
     }
 
     pub async fn fetch_user_repos(&self) -> anyhow::Result<Vec<Repository>> {
-        let (mut repos, pages) = self.fetch_user_repos_page(1).await?;
+        let (repos, pages) = self.fetch_user_repos_page(1).await?;
 
-        let mut tasks = FuturesUnordered::new();
-
-        for page in pages {
-            tasks.push(async move {
+        let tasks = pages
+            .into_iter()
+            .map(|page| async move {
                 let (new_repos, _) = self.fetch_user_repos_page(page).await?;
 
                 Ok::<Vec<Repository>, anyhow::Error>(new_repos)
             })
-        }
+            .collect::<FuturesUnordered<_>>();
 
-        while let Some(new_repos) = tasks.next().await {
-            let mut new_repos = new_repos?;
-            repos.append(&mut new_repos);
-        }
+        let res: Result<Vec<Vec<Repository>>, anyhow::Error> = tasks.try_collect().await;
+        let res = res?.into_iter().flatten();
 
-        Ok(repos)
+        Ok(repos.into_iter().chain(res).collect())
     }
 
     async fn fetch_org_repos_page(
@@ -211,24 +208,21 @@ impl DefaultGiteaClient {
     }
 
     pub async fn fetch_org_repos(&self, org: &str) -> anyhow::Result<Vec<Repository>> {
-        let (mut repos, pages) = self.fetch_org_repos_page(org, 1).await?;
+        let (repos, pages) = self.fetch_org_repos_page(org, 1).await?;
 
-        let mut tasks = FuturesUnordered::new();
-
-        for page in pages {
-            tasks.push(async move {
+        let tasks = pages
+            .into_iter()
+            .map(|page| async move {
                 let (new_repos, _) = self.fetch_org_repos_page(org, page).await?;
 
                 Ok::<Vec<Repository>, anyhow::Error>(new_repos)
             })
-        }
+            .collect::<FuturesUnordered<_>>();
 
-        while let Some(new_repos) = tasks.next().await {
-            let mut new_repos = new_repos?;
-            repos.append(&mut new_repos);
-        }
+        let res: Result<Vec<Vec<Repository>>, anyhow::Error> = tasks.try_collect().await;
+        let res = res?.into_iter().flatten();
 
-        Ok(repos)
+        Ok(repos.into_iter().chain(res).collect())
     }
 
     async fn fetch_renovate(&self, repo: &Repository) -> anyhow::Result<Option<()>> {
@@ -470,6 +464,7 @@ pub mod traits;
 
 use anyhow::Context;
 pub use extensions::*;
-use futures::{stream::FuturesUnordered, StreamExt};
+use futures::{stream::FuturesUnordered, StreamExt, TryStreamExt};
+use itertools::Itertools;
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
