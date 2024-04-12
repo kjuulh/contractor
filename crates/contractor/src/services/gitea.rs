@@ -72,6 +72,7 @@ impl Default for DefaultGiteaClient {
 
 impl DefaultGiteaClient {
     pub async fn fetch_user_repos(&self) -> anyhow::Result<Vec<Repository>> {
+        //FIXME: We should collect the pages for these queries
         let client = reqwest::Client::new();
 
         let url = format!("{}/api/v1/user/repos", self.url);
@@ -114,6 +115,32 @@ impl DefaultGiteaClient {
             .flat_map(Repository::try_from)
             .collect())
     }
+
+    async fn fetch_renovate(&self, repo: &Repository) -> anyhow::Result<Option<()>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "{}/api/v1/repos/{}/{}/contents/renovate.json",
+            self.url, &repo.owner, &repo.name
+        );
+
+        tracing::trace!("calling url: {}", &url);
+
+        let response = client
+            .get(&url)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("token {}", self.token))
+            .send()
+            .await?;
+
+        match response.error_for_status() {
+            Ok(_) => Ok(Some(())),
+            Err(e) => match e.status() {
+                Some(StatusCode::NOT_FOUND) => Ok(None),
+                _ => anyhow::bail!(e),
+            },
+        }
+    }
 }
 
 impl traits::GiteaClient for DefaultGiteaClient {
@@ -136,6 +163,15 @@ impl traits::GiteaClient for DefaultGiteaClient {
 
         Box::pin(async move { self.fetch_org_repos(org).await })
     }
+
+    fn renovate_enabled<'a>(
+        &'a self,
+        repo: &'a Repository,
+    ) -> Pin<Box<dyn futures::prelude::Future<Output = anyhow::Result<bool>> + Send + 'a>> {
+        tracing::trace!("checking whether renovate is enabled for: {:?}", repo);
+
+        Box::pin(async { self.fetch_renovate(repo).await.map(|s| s.is_some()) })
+    }
 }
 
 mod extensions;
@@ -143,4 +179,5 @@ pub mod traits;
 
 use anyhow::Context;
 pub use extensions::*;
+use reqwest::StatusCode;
 use serde::Deserialize;

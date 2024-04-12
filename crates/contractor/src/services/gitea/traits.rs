@@ -14,4 +14,9 @@ pub trait GiteaClient {
         &'a self,
         org: &'a str,
     ) -> Pin<Box<dyn Future<Output = anyhow::Result<Vec<Repository>>> + Send + 'a>>;
+
+    fn renovate_enabled<'a>(
+        &'a self,
+        repo: &'a Repository,
+    ) -> Pin<Box<dyn Future<Output = anyhow::Result<bool>> + Send + 'a>>;
 }

@@ -22,7 +22,7 @@ enum Commands {
         #[arg(long)]
         user: Option<String>,
         #[arg(long)]
-        orgs: Option<Vec<String>>,
+        org: Option<Vec<String>>,
     },
 }
 
@@ -61,12 +61,12 @@ async fn main() -> anyhow::Result<()> {
                 result??
             }
         }
-        Some(Commands::Reconcile { user, orgs }) => {
+        Some(Commands::Reconcile { user, org }) => {
             tracing::info!("running reconcile");
 
             let state = SharedState::from(Arc::new(State::new().await?));
 
-            state.reconciler().reconcile(user, orgs).await?;
+            state.reconciler().reconcile(user, org).await?;
         }
         None => {}
     }

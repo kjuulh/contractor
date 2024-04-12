@@ -1,3 +1,4 @@
+use futures::{stream::FuturesUnordered, StreamExt};
 use itertools::Itertools;
 
 use crate::SharedState;
@@ -19,8 +20,13 @@ impl Reconciler {
         orgs: Option<Vec<String>>,
     ) -> anyhow::Result<()> {
         let repos = self.get_repos(user, orgs).await?;
+        tracing::debug!("found repositories: {}", repos.len());
 
-        tracing::info!("found repositories: {}", repos.len());
+        let renovate_enabled = self.get_renovate_enabled(&repos).await?;
+        tracing::debug!(
+            "found repositories with renovate enabled: {}",
+            renovate_enabled.len()
+        );
 
         Ok(())
     }
@@ -46,6 +52,34 @@ impl Reconciler {
         }
 
         Ok(repos.into_iter().unique().collect())
+    }
+
+    async fn get_renovate_enabled(&self, repos: &[Repository]) -> anyhow::Result<Vec<Repository>> {
+        let mut futures = FuturesUnordered::new();
+
+        for repo in repos {
+            futures.push(async move {
+                let enabled = self.gitea_client.renovate_enabled(repo).await?;
+
+                if enabled {
+                    Ok::<Option<Repository>, anyhow::Error>(Some(repo.to_owned()))
+                } else {
+                    tracing::trace!("repository: {:?}, doesn't have renovate enabled", repo);
+                    Ok(None)
+                }
+            })
+        }
+
+        let mut enabled = Vec::new();
+        while let Some(res) = futures.next().await {
+            let res = res?;
+
+            if let Some(repo) = res {
+                enabled.push(repo)
+            }
+        }
+
+        Ok(enabled)
     }
 }
 
