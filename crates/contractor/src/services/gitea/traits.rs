@@ -19,4 +19,10 @@ pub trait GiteaClient {
         &'a self,
         repo: &'a Repository,
     ) -> Pin<Box<dyn Future<Output = anyhow::Result<bool>> + Send + 'a>>;
+
+    fn ensure_webhook<'a>(
+        &'a self,
+        repo: &'a Repository,
+        force_refresh: bool,
+    ) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + 'a>>;
 }

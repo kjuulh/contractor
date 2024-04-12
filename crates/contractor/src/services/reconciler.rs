@@ -20,6 +20,7 @@ impl Reconciler {
         user: Option<String>,
         orgs: Option<Vec<String>>,
         filter: Option<String>,
+        force_refresh: bool,
     ) -> anyhow::Result<()> {
         let repos = self.get_repos(user, orgs).await?;
         tracing::debug!("found repositories: {}", repos.len());
@@ -55,6 +56,9 @@ impl Reconciler {
             "found repositories with renovate enabled: {}",
             renovate_enabled.len()
         );
+
+        self.ensure_webhook(&renovate_enabled, force_refresh)
+            .await?;
 
         Ok(())
     }
@@ -108,6 +112,32 @@ impl Reconciler {
         }
 
         Ok(enabled)
+    }
+
+    async fn ensure_webhook(
+        &self,
+        repos: &[Repository],
+        force_refresh: bool,
+    ) -> anyhow::Result<()> {
+        tracing::debug!("ensuring webhooks are setup for repos");
+
+        let mut tasks = FuturesUnordered::new();
+
+        for repo in repos {
+            tasks.push(async move {
+                self.gitea_client
+                    .ensure_webhook(repo, force_refresh)
+                    .await?;
+
+                Ok::<(), anyhow::Error>(())
+            })
+        }
+
+        while let Some(res) = tasks.next().await {
+            res?;
+        }
+
+        Ok(())
     }
 }
 

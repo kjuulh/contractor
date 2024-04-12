@@ -26,6 +26,9 @@ enum Commands {
 
         #[arg(long, env = "CONTRACTOR_FILTER")]
         filter: Option<String>,
+
+        #[arg(long = "force-refresh", env = "CONTRACTOR_FORCE_REFRESH")]
+        force_refresh: bool,
     },
 }
 
@@ -64,12 +67,20 @@ async fn main() -> anyhow::Result<()> {
                 result??
             }
         }
-        Some(Commands::Reconcile { user, org, filter }) => {
+        Some(Commands::Reconcile {
+            user,
+            org,
+            filter,
+            force_refresh,
+        }) => {
             tracing::info!("running reconcile");
 
             let state = SharedState::from(Arc::new(State::new().await?));
 
-            state.reconciler().reconcile(user, org, filter).await?;
+            state
+                .reconciler()
+                .reconcile(user, org, filter, force_refresh)
+                .await?;
         }
         None => {}
     }
