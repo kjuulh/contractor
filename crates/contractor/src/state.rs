@@ -1,5 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
+use crate::services::gitea::GiteaClient;
+
 #[derive(Clone)]
 pub struct SharedState(Arc<State>);
 

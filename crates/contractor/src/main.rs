@@ -17,6 +17,13 @@ enum Commands {
         #[arg(env = "SERVICE_HOST", long, default_value = "127.0.0.1:3000")]
         host: SocketAddr,
     },
+
+    Reconcile {
+        #[arg(long)]
+        user: Option<String>,
+        #[arg(long)]
+        orgs: Option<Vec<String>>,
+    },
 }
 
 mod api;
@@ -29,29 +36,39 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Command::parse();
 
-    if let Some(Commands::Serve { host }) = cli.command {
-        tracing::info!("Starting service");
+    match cli.command {
+        Some(Commands::Serve { host }) => {
+            tracing::info!("Starting service");
 
-        let state = SharedState::from(Arc::new(State::new().await?));
+            let state = SharedState::from(Arc::new(State::new().await?));
 
-        let mut tasks = FuturesUnordered::new();
+            let mut tasks = FuturesUnordered::new();
 
-        tasks.push({
-            let state = state.clone();
-            task::spawn(async move {
-                serve_axum(&state, &host).await?;
+            tasks.push({
+                let state = state.clone();
+                task::spawn(async move {
+                    serve_axum(&state, &host).await?;
+                    Ok::<(), anyhow::Error>(())
+                })
+            });
+
+            tasks.push(task::spawn(async move {
+                serve_cron_jobs(&state).await?;
                 Ok::<(), anyhow::Error>(())
-            })
-        });
+            }));
 
-        tasks.push(task::spawn(async move {
-            serve_cron_jobs(&state).await?;
-            Ok::<(), anyhow::Error>(())
-        }));
-
-        while let Some(result) = tasks.next().await {
-            result??
+            while let Some(result) = tasks.next().await {
+                result??
+            }
         }
+        Some(Commands::Reconcile { user, orgs }) => {
+            tracing::info!("running reconcile");
+
+            let state = SharedState::from(Arc::new(State::new().await?));
+
+            state.reconciler().reconcile(user, orgs).await?;
+        }
+        None => {}
     }
 
     Ok(())
@@ -59,4 +76,6 @@ async fn main() -> anyhow::Result<()> {
 
 mod state;
 pub use crate::state::{SharedState, State};
-use crate::{api::serve_axum, schedule::serve_cron_jobs};
+use crate::{api::serve_axum, schedule::serve_cron_jobs, services::reconciler::ReconcilerState};
+
+mod services;
