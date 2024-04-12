@@ -81,6 +81,8 @@ async fn main() -> anyhow::Result<()> {
                 .reconciler()
                 .reconcile(user, org, filter, force_refresh)
                 .await?;
+
+            tracing::info!("done running reconcile");
         }
         None => {}
     }

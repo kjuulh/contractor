@@ -113,11 +113,13 @@ pub struct CreateGiteaWebhookConfig {
 }
 
 impl DefaultGiteaClient {
-    pub async fn fetch_user_repos(&self) -> anyhow::Result<Vec<Repository>> {
-        //FIXME: We should collect the pages for these queries
+    async fn fetch_user_repos_page(
+        &self,
+        page: usize,
+    ) -> anyhow::Result<(Vec<Repository>, Vec<usize>)> {
         let client = reqwest::Client::new();
 
-        let url = format!("{}/api/v1/user/repos", self.url);
+        let url = format!("{}/api/v1/user/repos?page={page}&limit=50", self.url);
 
         tracing::trace!("calling url: {}", &url);
 
@@ -128,34 +130,105 @@ impl DefaultGiteaClient {
             .send()
             .await?;
 
+        let mut pages = Vec::new();
+        if page <= 1 {
+            if let Some(link_header) = response.headers().get("link") {
+                let link_str = link_header.to_str()?;
+                pages = parse_link(page, link_str)?;
+            }
+        }
+
         let repositories = response.json::<Vec<GiteaRepository>>().await?;
 
-        Ok(repositories
-            .into_iter()
-            .flat_map(Repository::try_from)
-            .collect())
+        Ok((
+            repositories
+                .into_iter()
+                .flat_map(Repository::try_from)
+                .collect(),
+            pages,
+        ))
+    }
+
+    pub async fn fetch_user_repos(&self) -> anyhow::Result<Vec<Repository>> {
+        let (mut repos, pages) = self.fetch_user_repos_page(1).await?;
+
+        let mut tasks = FuturesUnordered::new();
+
+        for page in pages {
+            tasks.push(async move {
+                let (new_repos, _) = self.fetch_user_repos_page(page).await?;
+
+                Ok::<Vec<Repository>, anyhow::Error>(new_repos)
+            })
+        }
+
+        while let Some(new_repos) = tasks.next().await {
+            let mut new_repos = new_repos?;
+            repos.append(&mut new_repos);
+        }
+
+        Ok(repos)
+    }
+
+    async fn fetch_org_repos_page(
+        &self,
+        org: &str,
+        page: usize,
+    ) -> anyhow::Result<(Vec<Repository>, Vec<usize>)> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "{}/api/v1/orgs/{}/repos?page={page}&limit=50",
+            self.url, org
+        );
+
+        tracing::trace!("calling url: {}", &url);
+
+        let response = client
+            .get(&url)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("token {}", self.token))
+            .send()
+            .await?;
+
+        let mut pages = Vec::new();
+        if page <= 1 {
+            if let Some(link_header) = response.headers().get("link") {
+                let link_str = link_header.to_str()?;
+                pages = parse_link(page, link_str)?;
+            }
+        }
+
+        let repositories = response.json::<Vec<GiteaRepository>>().await?;
+
+        Ok((
+            repositories
+                .into_iter()
+                .flat_map(Repository::try_from)
+                .collect(),
+            pages,
+        ))
     }
 
     pub async fn fetch_org_repos(&self, org: &str) -> anyhow::Result<Vec<Repository>> {
-        let client = reqwest::Client::new();
+        let (mut repos, pages) = self.fetch_org_repos_page(org, 1).await?;
 
-        let url = format!("{}/api/v1/orgs/{}/repos", self.url, org);
+        let mut tasks = FuturesUnordered::new();
 
-        tracing::trace!("calling url: {}", &url);
+        for page in pages {
+            tasks.push(async move {
+                let (new_repos, _) = self.fetch_org_repos_page(org, page).await?;
 
-        let response = client
-            .get(&url)
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("token {}", self.token))
-            .send()
-            .await?;
+                Ok::<Vec<Repository>, anyhow::Error>(new_repos)
+            })
+        }
 
-        let repositories = response.json::<Vec<GiteaRepository>>().await?;
+        while let Some(new_repos) = tasks.next().await {
+            let mut new_repos = new_repos?;
+            repos.append(&mut new_repos);
+        }
 
-        Ok(repositories
-            .into_iter()
-            .flat_map(Repository::try_from)
-            .collect())
+        Ok(repos)
     }
 
     async fn fetch_renovate(&self, repo: &Repository) -> anyhow::Result<Option<()>> {
@@ -362,10 +435,41 @@ impl traits::GiteaClient for DefaultGiteaClient {
     }
 }
 
+// <https://git.front.kjuulh.io/api/v1/user/repos?page=2>; rel="next",<https://git.front.kjuulh.io/api/v1/user/repos?page=9>; rel="last"
+fn parse_link(page: usize, link_str: &str) -> anyhow::Result<Vec<usize>> {
+    let link_sections = link_str.split(',');
+
+    for link_section in link_sections {
+        if let Some((link, rel)) = link_section.rsplit_once("; ") {
+            if rel == r#"rel="last""# {
+                let actual_link = &link[1..link.len() - 1];
+
+                let url = Url::parse(actual_link)?;
+
+                if let Some(page_num) = url
+                    .query_pairs()
+                    .into_iter()
+                    .find(|(name, _)| name == "page")
+                    .map(|(_, value)| value)
+                {
+                    let page_num: usize = page_num.parse()?;
+
+                    let page_numbers = (page + 1..page_num).collect::<Vec<usize>>();
+
+                    return Ok(page_numbers);
+                }
+            }
+        }
+    }
+
+    Ok(Vec::default())
+}
+
 mod extensions;
 pub mod traits;
 
 use anyhow::Context;
 pub use extensions::*;
-use reqwest::StatusCode;
+use futures::{stream::FuturesUnordered, StreamExt};
+use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
