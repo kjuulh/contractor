@@ -228,7 +228,7 @@ impl DefaultGiteaClient {
                 content_type: "json".into(),
                 url: "https://url?type=contractor".into(),
             },
-            events: vec!["pull_request_review_comment".into()],
+            events: vec!["pull_request_comment".into(), "issue_comment".into()],
             r#type: GiteaWebhookType::Gitea,
         };
 
@@ -274,7 +274,7 @@ impl DefaultGiteaClient {
                 content_type: "json".into(),
                 url: "https://url?type=contractor".into(),
             },
-            events: vec!["pull_request_review_comment".into()],
+            events: vec!["pull_request_comment".into(), "issue_comment".into()],
             r#type: GiteaWebhookType::Gitea,
         };
 
