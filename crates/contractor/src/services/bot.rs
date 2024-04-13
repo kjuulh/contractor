@@ -1,11 +1,13 @@
 use clap::{Parser, Subcommand};
 
-use crate::SharedState;
+use crate::{services::renovate::RenovateConfig, SharedState};
 
-use super::gitea::Repository;
+use super::{engines::dagger::Dagger, gitea::Repository};
 
 pub struct Bot {
     command_name: String,
+
+    dagger: Dagger,
 }
 
 #[derive(Parser)]
@@ -24,9 +26,11 @@ enum BotCommands {
 }
 
 impl Bot {
-    pub fn new() -> Self {
+    pub fn new(dagger: Dagger) -> Self {
         Self {
             command_name: std::env::var("CONTRACTOR_COMMAND_NAME").unwrap_or("contractor".into()),
+
+            dagger,
         }
     }
 
@@ -42,6 +46,19 @@ impl Bot {
         match cmd.command {
             Some(BotCommands::Refresh { all }) => {
                 tracing::info!("triggering refresh for: {}, all: {}", req.repo, all);
+
+                let dagger = self.dagger.clone();
+                tokio::spawn(async move {
+                    match dagger
+                        .execute_renovate(&RenovateConfig {
+                            repo: format!("{}/{}", &req.repo.owner, &req.repo.name),
+                        })
+                        .await
+                    {
+                        Ok(_) => {}
+                        Err(e) => tracing::error!("failed to execute renovate: {}", e),
+                    };
+                });
             }
             None => {
                 // TODO: Send back the help menu
@@ -58,8 +75,10 @@ pub struct BotRequest {
 }
 
 pub trait BotState {
+    fn bot(&self) -> Bot;
+}
+impl BotState for SharedState {
     fn bot(&self) -> Bot {
-        Bot::new()
+        Bot::new(self.engine.clone())
     }
 }
-impl BotState for SharedState {}

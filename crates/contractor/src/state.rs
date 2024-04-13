@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc};
 
-use crate::services::gitea::GiteaClient;
+use crate::services::engines::dagger::Dagger;
 
 #[derive(Clone)]
 pub struct SharedState(Arc<State>);
@@ -21,6 +21,7 @@ impl Deref for SharedState {
 
 pub struct State {
     // pub db: Pool<Postgres>,
+    pub engine: Dagger,
 }
 
 impl State {
@@ -38,6 +39,8 @@ impl State {
         // let _ = sqlx::query("SELECT 1;").fetch_one(&db).await?;
 
         // Ok(Self { db })
-        Ok(Self {})
+        let engine = Dagger::new();
+
+        Ok(Self { engine })
     }
 }

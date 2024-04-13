@@ -1,8 +1,7 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 use anyhow::Context;
 use axum::{
-    body::Body,
     extract::{MatchedPath, State},
     http::Request,
     response::IntoResponse,
