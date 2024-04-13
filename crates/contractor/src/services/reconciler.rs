@@ -103,6 +103,7 @@ impl Reconciler {
         }
 
         let mut enabled = Vec::new();
+
         while let Some(res) = futures.next().await {
             let res = res?;
 

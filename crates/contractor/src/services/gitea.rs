@@ -241,18 +241,35 @@ impl DefaultGiteaClient {
 
         tracing::trace!("calling url: {}", &url);
 
-        let response = client
-            .get(&url)
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("token {}", self.token))
-            .send()
-            .await?;
+        let response = (|| async {
+            client
+                .get(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("token {}", self.token))
+                .send()
+                .await
+        })
+        .retry(&ExponentialBuilder::default())
+        .notify(|err, dur| {
+            tracing::debug!("retrying job: {err}, in: {} seconds", dur.as_secs());
+        })
+        .await?;
 
         match response.error_for_status() {
             Ok(_) => Ok(Some(())),
             Err(e) => match e.status() {
                 Some(StatusCode::NOT_FOUND) => Ok(None),
-                _ => anyhow::bail!(e),
+                Some(status) => {
+                    tracing::warn!(
+                        "failed to call fetch renovate for: {}, with error: {}",
+                        &repo,
+                        status
+                    );
+                    anyhow::bail!(e)
+                }
+                _ => {
+                    anyhow::bail!(e)
+                }
             },
         }
     }
@@ -267,12 +284,19 @@ impl DefaultGiteaClient {
 
         tracing::trace!("calling url: {}", &url);
 
-        let response = client
-            .get(&url)
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("token {}", self.token))
-            .send()
-            .await?;
+        let response = (|| async {
+            client
+                .get(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("token {}", self.token))
+                .send()
+                .await
+        })
+        .retry(&ExponentialBuilder::default())
+        .notify(|err, dur| {
+            tracing::debug!("retrying job: {err}, in: {} seconds", dur.as_secs());
+        })
+        .await?;
 
         let webhooks = response.json::<Vec<GiteaWebhook>>().await?;
 
@@ -301,14 +325,21 @@ impl DefaultGiteaClient {
             serde_json::to_string(&val)?
         );
 
-        let response = client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .header("Authorization", format!("token {}", self.token))
-            .json(&val)
-            .send()
-            .await?;
+        let response = (|| async {
+            client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("Authorization", format!("token {}", self.token))
+                .json(&val)
+                .send()
+                .await
+        })
+        .retry(&ExponentialBuilder::default())
+        .notify(|err, dur| {
+            tracing::debug!("retrying job: {err}, in: {} seconds", dur.as_secs());
+        })
+        .await?;
 
         if let Err(e) = response.error_for_status_ref() {
             if let Ok(ok) = response.text().await {
@@ -351,14 +382,21 @@ impl DefaultGiteaClient {
             serde_json::to_string(&val)?
         );
 
-        let response = client
-            .patch(&url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .header("Authorization", format!("token {}", self.token))
-            .json(&val)
-            .send()
-            .await?;
+        let response = (|| async {
+            client
+                .patch(&url)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("Authorization", format!("token {}", self.token))
+                .json(&val)
+                .send()
+                .await
+        })
+        .retry(&ExponentialBuilder::default())
+        .notify(|err, dur| {
+            tracing::debug!("retrying job: {err}, in: {} seconds", dur.as_secs());
+        })
+        .await?;
 
         if let Err(e) = response.error_for_status_ref() {
             if let Ok(ok) = response.text().await {
@@ -463,6 +501,7 @@ mod extensions;
 pub mod traits;
 
 use anyhow::Context;
+use backon::{ExponentialBuilder, Retryable};
 pub use extensions::*;
 use futures::{stream::FuturesUnordered, TryStreamExt};
 use reqwest::{StatusCode, Url};
