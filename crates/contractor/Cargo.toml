@@ -12,7 +12,7 @@ clap.workspace = true
 dotenv.workspace = true
 axum.workspace = true
 
-serde = { version = "1.0.200", features = ["derive"] }
+serde = { version = "1.0.201", features = ["derive"] }
 sqlx = { version = "0.7.4", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "time"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 tower-http = { version = "0.5.2", features = ["cors", "trace"] }
@@ -20,6 +20,6 @@ futures = "0.3.30"
 reqwest = {version = "0.12.4", default-features = false, features = ["json", "rustls-tls"]}
 itertools = "0.12.1"
 regex = "1.10.4"
-serde_json = "1.0.116"
+serde_json = "1.0.117"
 dagger-sdk = "0.9.8"
 backon = "0.4.4"
